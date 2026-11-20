@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Reportes Site MP</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1e3a8a" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: #f3f4f6; color: #1f2937; padding-bottom: 40px; }
+    header { background: #1e3a8a; color: #fff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
+    header h1 { margin: 0; font-size: 18px; }
+    .ver { font-size: 12px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
+    .container { max-width: 720px; margin: 0 auto; padding: 14px; }
+    .card { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .row { display: flex; gap: 8px; }
+    input[type="text"] { flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; }
+    button { border: none; border-radius: 6px; padding: 10px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #1e3a8a; color: #fff; }
+    .btn-secondary { background: #e5e7eb; color: #1f2937; }
+    .btn-zip { background: #4f46e5; color: #fff; }
+    .btn-share { background: #059669; color: #fff; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-sm { padding: 6px 10px; font-size: 13px; }
+    .project-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
+    .tab { flex: 1; background: #e5e7eb; color: #374151; padding: 10px 8px; font-size: 12px; text-align: center; border-radius: 6px; white-space: nowrap; }
+    .tab.active { background: #1e3a8a; color: #fff; }
+    .sub-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .sub-title { font-weight: 700; font-size: 14px; margin: 0 0 4px 0; color: #111827; }
+    .sub-desc { font-size: 12px; color: #4b5563; margin: 0 0 10px 0; }
+    .sub-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .badge-empty { font-size: 11px; color: #6b7280; background: #f3f4f6; padding: 3px 8px; border-radius: 4px; }
+    .badge-count { font-size: 11px; color: #1e3a8a; background: #dbeafe; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+    .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin-top: 10px; }
+    .thumb-box { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid #d1d5db; background: #111; display: flex; align-items: center; justify-content: center; }
+    .thumb-box img, .thumb-box video { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-pdf { color: #fff; font-size: 11px; text-align: center; padding: 4px; word-break: break-word; }
+    .thumb-del { position: absolute; top: 3px; right: 3px; background: rgba(220,38,38,0.9); color: #fff; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+    /* Camera Modal */
+    .modal { position: fixed; inset: 0; background: #000; z-index: 50; display: none; flex-direction: column; }
+    .modal.open { display: flex; }
+    .cam-top { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; color: #fff; background: rgba(0,0,0,0.6); z-index: 2; }
+    .cam-view { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .cam-view video { width: 100%; height: 100%; object-fit: cover; }
+    .cam-vol-hint { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.55); color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 12px; pointer-events: none; }
+    .cam-bottom { padding: 16px; background: rgba(0,0,0,0.75); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .cam-preview { width: 54px; height: 54px; border-radius: 8px; border: 2px solid #fff; overflow: hidden; position: relative; background: #222; cursor: pointer; }
+    .cam-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .cam-preview span { position: absolute; bottom: 0; right: 0; background: #1e3a8a; color: #fff; font-size: 11px; padding: 1px 5px; font-weight: 700; }
+    .shutter { width: 68px; height: 68px; border-radius: 50%; background: #fff; border: 4px solid #9ca3af; cursor: pointer; }
+    .shutter:active { transform: scale(0.92); background: #e5e7eb; }
+
+    /* Gallery Lightbox */
+    .viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 60; display: none; flex-direction: column; }
+    .viewer.open { display: flex; }
+    .viewer-top { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; color: #fff; gap: 8px; }
+    .viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .viewer-body img, .viewer-body video { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: #fff; font-size: 28px; width: 44px; height: 64px; border-radius: 8px; }
+    .nav-prev { left: 8px; }
+    .nav-next { right: 8px; }
+
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 100; display: none; text-align: center; max-width: 90%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reportes Site MP</h1>
+    <span class="ver">v14</span>
+  </header>
+
+  <div class="container">
+    <!-- Home View -->
+    <div id="homeView">
+      <div class="card">
+        <div class="row">
+          <input type="text" id="newProjectName" placeholder="Nombre de carpeta principal (Ej: SITE_001)" />
+          <button class="btn-primary" onclick="createProject()">Crear</button>
+        </div>
+      </div>
+      <div id="projectList"></div>
+    </div>
+
+    <!-- Project Detail View -->
+    <div id="projectView" style="display:none;">
+      <div class="card">
+        <div class="project-header">
+          <button class="btn-secondary btn-sm" onclick="goHome()">← Carpetas</button>
+          <input type="text" id="editProjectName" onchange="renameCurrentProject()" style="font-weight:700;" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn-zip" style="flex:1;" onclick="generateZip('download')">📦 Descargar ZIP</button>
+          <button class="btn-share" style="flex:1;" onclick="generateZip('share')">📤 Compartir ZIP</button>
+        </div>
+        <div id="shareReadyBox" style="display:none; margin-top:10px;">
+          <button id="nativeShareBtn" class="btn-share" style="width:100%; padding:12px;">📲 Enviar ZIP ahora por WhatsApp / Apps</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tab1" onclick="switchTab(1)">1. F17-CARPETA DE FOTOS (29)</button>
+        <button class="tab" id="tab2" onclick="switchTab(2)">2. FORMATOS MP</button>
+        <button class="tab" id="tab3" onclick="switchTab(3)">3. MANTENIMIENTO PREVENTIVO (30)</button>
+      </div>
+
+      <div id="subfolderList"></div>
+    </div>
+  </div>
+
+  <!-- Hidden Native Fallback Input -->
+  <input type="file" id="nativeCamInput" accept="image/*" capture="environment" style="display:none;" onchange="handleNativeCam(event)" />
+  <input type="file" id="galleryInput" multiple style="display:none;" onchange="handleGalleryUpload(event)" />
+
+  <!-- Camera Modal -->
+  <div class="modal" id="camModal">
+    <div class="cam-top">
+      <button class="btn-secondary btn-sm" onclick="closeCamera()">Cerrar</button>
+      <span id="camSubLabel" style="font-size:13px; font-weight:600; max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      <button class="btn-secondary btn-sm" onclick="triggerNativeCamFallback()">📷 Nativa</button>
+    </div>
+    <div class="cam-view">
+      <video id="camVideo" autoplay playsinline></video>
+      <div class="cam-vol-hint">🔊 Usa botón Volumen + / - o el círculo para capturar</div>
+    </div>
+    <div class="cam-bottom">
+      <div class="cam-preview" id="camPreviewBox" onclick="openCamGallery()">
+        <img id="camPreviewImg" style="display:none;" />
+        <span id="camCountBadge">0</span>
+      </div>
+      <button class="shutter" id="shutterBtn" onclick="capturePhoto()"></button>
+      <button class="btn-primary btn-sm" onclick="closeCamera()">Listo</button>
+    </div>
+  </div>
+
+  <!-- Lightbox Viewer -->
+  <div class="viewer" id="viewerModal">
+    <div class="viewer-top">
+      <button class="btn-secondary btn-sm" onclick="closeViewer()">Cerrar</button>
+      <span id="viewerInfo" style="font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      <button class="btn-danger btn-sm" onclick="deleteCurrentViewerItem()">🗑 Eliminar</button>
+    </div>
+    <div class="viewer-body" id="viewerBody">
+      <button class="nav-btn nav-prev" onclick="navViewer(-1)">‹</button>
+      <div id="viewerContent" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"></div>
+      <button class="nav-btn nav-next" onclick="navViewer(1)">›</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <canvas id="workCanvas" style="display:none;"></canvas>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
